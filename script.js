@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { PMREMGenerator } from 'three';
 
 // --- Escena, Cámara y Renderer ---
@@ -51,93 +52,103 @@ const sphereGeometry = new THREE.SphereGeometry(0.5, 16, 16);
 // --- Post-procesamiento ---
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
+const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.7, 0.4, 0.85);
+composer.addPass(bloomPass);
 
 // --- Corazones y Pelotitas ---
 const objects = [];
-const heartCount = 800;
-const sphereCount = 80;
+
+// Ajustes para la cantidad, tamaño y dispersión de los objetos
+const heartCount = 500;
+const sphereCount = 100;
 const heartColors = ['#ff4d6d', '#ff809c', '#ff99cc', '#ff3366', '#ff6699'];
 const sphereColor = '#c2a2da';
 
-const baseMaterial = new THREE.MeshPhysicalMaterial({ metalness: 0, roughness: 0, transmission: 0.8, clearcoat: 1.0, clearcoatRoughness: 0.05 });
-
-for (let i = 0; i < heartCount; i++) {
-    const material = baseMaterial.clone();
-    const color = new THREE.Color(heartColors[Math.floor(Math.random() * heartColors.length)]);
-    material.color.set(color);
-
-    const heart = new THREE.Mesh(heartGeometry, material);
-    heart.castShadow = true;
-    heart.receiveShadow = true;
-
-    heart.orbitRadius = Math.random() * 35 + 15;
-    heart.orbitSpeed = -(Math.random() * 0.005 + 0.002);
-    heart.orbitAngle = Math.random() * Math.PI * 2;
-    heart.verticalOffset = (Math.random() - 0.5) * 100;
-    heart.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
-    const scale = Math.random() * 0.4 + 0.3;
-    heart.scale.set(scale, scale, scale);
-
-    scene.add(heart);
-    objects.push(heart);
-}
-
-for (let i = 0; i < sphereCount; i++) {
-    const material = baseMaterial.clone();
-    material.color.set(new THREE.Color(sphereColor));
-    material.roughness = 0.6;
-
-    const sphere = new THREE.Mesh(sphereGeometry, material);
-    sphere.castShadow = true;
-    sphere.receiveShadow = true;
-
-    sphere.orbitRadius = Math.random() * 30 + 10;
-    sphere.orbitSpeed = -(Math.random() * 0.008 + 0.003);
-    sphere.orbitAngle = Math.random() * Math.PI * 2;
-    sphere.verticalOffset = (Math.random() - 0.5) * 80;
-    sphere.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
-    const scale = Math.random() * 0.6 + 0.3;
-    sphere.scale.set(scale, scale, scale);
-
-    scene.add(sphere);
-    objects.push(sphere);
-}
-
-camera.position.z = 35;
+camera.position.z = 10; // Alejamos un poco la cámara para enmarcar mejor la nueva composición
 
 // --- Cargar environment map HDR (con URL corregida) ---
 const pmremGenerator = new PMREMGenerator(renderer);
 pmremGenerator.compileEquirectangularShader();
+
+let heartInstance, sphereInstance;
+const dummy = new THREE.Object3D(); // Objeto auxiliar para calcular matrices
 
 new RGBELoader().load('https://rawcdn.githack.com/mrdoob/three.js/dev/examples/textures/equirectangular/royal_esplanade_1k.hdr', function(texture) {
     const envMap = pmremGenerator.fromEquirectangular(texture).texture;
     texture.dispose();
     pmremGenerator.dispose();
 
-    objects.forEach(obj => {
-        obj.material = new THREE.MeshPhysicalMaterial({
-            color: obj.material.color,
-            metalness: 1.0,
-            roughness: obj.geometry.type === 'SphereGeometry' ? 0.6 : 0.4,
-            clearcoat: 1.0,
-            clearcoatRoughness: 0.05,
-            envMap: envMap,
-            reflectivity: 1.0,
-            side: THREE.DoubleSide
-        });
-    });
+    // --- Materiales Finales ---
+    const heartMaterial = new THREE.MeshPhysicalMaterial({ metalness: 1.0, roughness: 0.4, clearcoat: 1.0, clearcoatRoughness: 0.05, envMap: envMap, reflectivity: 1.0, side: THREE.DoubleSide });
+    const sphereMaterial = new THREE.MeshPhysicalMaterial({ color: sphereColor, metalness: 1.0, roughness: 0.6, clearcoat: 1.0, clearcoatRoughness: 0.05, envMap: envMap, reflectivity: 1.0, side: THREE.DoubleSide });
+
+    // --- InstancedMesh para Corazones ---
+    heartInstance = new THREE.InstancedMesh(heartGeometry, heartMaterial, heartCount);
+    for (let i = 0; i < heartCount; i++) {
+        const orbitRadius = Math.random() * 8 + 4; // Rango de órbita muy compacto (4 a 12)
+        const orbitSpeed = -(Math.random() * 0.005 + 0.002);
+        const orbitAngle = Math.random() * Math.PI * 2;
+        const verticalOffset = (Math.random() - 0.5) * 50; // Menos dispersión vertical
+        const scale = Math.random() * 0.15 + 0.15;
+        const rotation = new THREE.Euler(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+
+        dummy.position.set(orbitRadius * Math.cos(orbitAngle), verticalOffset, orbitRadius * Math.sin(orbitAngle));
+        dummy.rotation.copy(rotation);
+        dummy.scale.set(scale, scale, scale);
+        dummy.updateMatrix();
+        heartInstance.setMatrixAt(i, dummy.matrix);
+        heartInstance.setColorAt(i, new THREE.Color(heartColors[Math.floor(Math.random() * heartColors.length)]));
+        
+        objects.push({ isHeart: true, orbitRadius, orbitSpeed, orbitAngle, verticalOffset, rotation });
+    }
+    scene.add(heartInstance);
+
+    // --- InstancedMesh para Esferas ---
+    sphereInstance = new THREE.InstancedMesh(sphereGeometry, sphereMaterial, sphereCount);
+    for (let i = 0; i < sphereCount; i++) {
+        const orbitRadius = Math.random() * 7 + 3; // Rango de órbita muy compacto (3 a 10)
+        const orbitSpeed = -(Math.random() * 0.008 + 0.003);
+        const orbitAngle = Math.random() * Math.PI * 2;
+        const verticalOffset = (Math.random() - 0.5) * 40; // Menos dispersión vertical
+        const scale = Math.random() * 0.1 + 0.1;
+        const rotation = new THREE.Euler(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+
+        dummy.position.set(orbitRadius * Math.cos(orbitAngle), verticalOffset, orbitRadius * Math.sin(orbitAngle));
+        dummy.rotation.copy(rotation);
+        dummy.scale.set(scale, scale, scale);
+        dummy.updateMatrix();
+        sphereInstance.setMatrixAt(i, dummy.matrix);
+
+        objects.push({ isHeart: false, orbitRadius, orbitSpeed, orbitAngle, verticalOffset, rotation });
+    }
+    scene.add(sphereInstance);
 });
 
 // --- Animación ---
 function animate() {
     requestAnimationFrame(animate);
-    objects.forEach(obj => {
-        obj.orbitAngle += obj.orbitSpeed;
-        obj.position.x = obj.orbitRadius * Math.cos(obj.orbitAngle);
-        obj.position.z = obj.orbitRadius * Math.sin(obj.orbitAngle);
-        obj.position.y = obj.verticalOffset;
-        obj.rotation.y += 0.01;
-    });
+
+    if (heartInstance && sphereInstance) {
+        objects.forEach((obj, i) => {
+            obj.orbitAngle += obj.orbitSpeed;
+            dummy.position.set(obj.orbitRadius * Math.cos(obj.orbitAngle), obj.verticalOffset, obj.orbitRadius * Math.sin(obj.orbitAngle));
+            
+            // Mantener la rotación inicial, pero hacer que giren suavemente
+            const rotationY = obj.rotation.y + (obj.orbitAngle * 0.1);
+            dummy.rotation.set(obj.rotation.x, rotationY, obj.rotation.z);
+            
+            dummy.updateMatrix();
+
+            if (obj.isHeart) {
+                heartInstance.setMatrixAt(i, dummy.matrix);
+            } else {
+                // El índice para las esferas debe ajustarse
+                sphereInstance.setMatrixAt(i - heartCount, dummy.matrix);
+            }
+        });
+        heartInstance.instanceMatrix.needsUpdate = true;
+        sphereInstance.instanceMatrix.needsUpdate = true;
+    }
     composer.render();
 }
 animate();
@@ -149,3 +160,52 @@ window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
 });
+
+// --- CÓDIGO PARA REPRODUCIR MÚSICA DE YOUTUBE ---
+let player;
+let playerInitialized = false;
+let videoPlayedOnce = false;
+
+window.onYouTubeIframeAPIReady = function() {
+    console.log("¡La API de YouTube está lista!");
+    document.addEventListener('click', startMusic);
+}
+
+function startMusic() {
+    if (!playerInitialized) {
+        player = new YT.Player('player', {
+            videoId: '7as_BTOh-Lg',
+            playerVars: {
+                'autoplay': 1,
+                'controls': 0,
+                'mute': 0,
+                'loop': 1,
+                'playlist': '7as_BTOh-Lg'
+            },
+            events: {
+                'onReady': onPlayerReady,
+                'onStateChange': onPlayerStateChange
+            }
+        });
+        playerInitialized = true;
+        console.log("Creando reproductor de YouTube...");
+    }
+}
+
+function onPlayerReady(event) {
+    console.log("El reproductor está listo.");
+    if (!videoPlayedOnce) {
+        setTimeout(() => {
+            event.target.playVideo();
+            videoPlayedOnce = true;
+        }, 100); 
+    }
+}
+
+function onPlayerStateChange(event) {
+    if (event.data === YT.PlayerState.ENDED) {
+        console.log("Video terminado, reiniciando...");
+        player.seekTo(0);
+        player.playVideo();
+    }
+}
