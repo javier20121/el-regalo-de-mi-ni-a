@@ -89,6 +89,7 @@ const extrudeSettings = {
 };
 const heartGeometry = new THREE.ExtrudeGeometry(heartShape, extrudeSettings);
 heartGeometry.center();
+heartGeometry.rotateX(Math.PI); // Rotamos el corazón 180 grados para que apunte hacia arriba
 // Increased the size of the hearts
 heartGeometry.scale(4, 4, 4);
 
@@ -269,11 +270,12 @@ const generateMessage = async () => {
     generateButton.textContent = 'Generando...';
     messageContainer.classList.remove('visible');
 
-    // Ahora llamamos a nuestra propia función de servidor, que ocultará la clave.
+    // Llamamos a nuestra propia función de servidor, que ocultará la clave.
     const apiUrl = `/api/generate-message`;
 
     try {
-        const response = await fetch(apiUrl); // GET es el método por defecto y es permitido
+        // Usamos GET porque no necesitamos enviar datos, la pregunta está en el servidor.
+        const response = await fetch(apiUrl);
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
