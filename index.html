@@ -41,7 +41,37 @@
   <!-- Tu script de JavaScript -->
   <script type="module" src="script.js"></script>
 
-  <!-- API de YouTube, necesaria para el reproductor -->
+  <!-- API de YouTube -->
   <script src="https://www.youtube.com/iframe_api"></script>
+
+  <!-- Lógica del reproductor de YouTube en un script separado y no-módulo -->
+  <script>
+    let player;
+
+    function startPlayback() {
+      console.log("Click detectado. Intentando reproducir...");
+      if (player && typeof player.playVideo === 'function') {
+        if (player.getPlayerState() !== YT.PlayerState.PLAYING) {
+          player.playVideo();
+        }
+      }
+    }
+
+    function onPlayerReady(event) {
+      console.log("YouTube Player está listo. Añadiendo listener de click.");
+      event.target.setVolume(40);
+      window.addEventListener('click', startPlayback);
+    }
+
+    // La API de YouTube llama a esta función global
+    function onYouTubeIframeAPIReady() {
+      console.log("API de YouTube cargada. Creando reproductor.");
+      player = new YT.Player('player', {
+        height: '0', width: '0', videoId: '7as_BTOh-Lg',
+        playerVars: { autoplay: 0, loop: 1, playlist: '7as_BTOh-Lg', controls: 0, modestbranding: 1 },
+        events: { 'onReady': onPlayerReady }
+      });
+    }
+  </script>
 </body>
 </html>

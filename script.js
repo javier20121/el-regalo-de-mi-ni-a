@@ -109,7 +109,7 @@ camera.position.z = 35;
 const pmremGenerator = new PMREMGenerator(renderer);
 pmremGenerator.compileEquirectangularShader();
 
-new RGBELoader().load('https://threejs.org/examples/textures/equirectangular/royal_esplanade_1k.hdr', function(texture) {
+new RGBELoader().load('https://rawcdn.githack.com/mrdoob/three.js/dev/examples/textures/equirectangular/royal_esplanade_1k.hdr', function(texture) {
     const envMap = pmremGenerator.fromEquirectangular(texture).texture;
     texture.dispose();
     pmremGenerator.dispose();
@@ -149,39 +149,3 @@ window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
 });
-
-// --- CÓDIGO CORREGIDO PARA REPRODUCIR MÚSICA DE YOUTUBE ---
-let player;
-
-// Esta función se llamará cuando el usuario haga clic por primera vez.
-function startPlayback() {
-  if (player && typeof player.playVideo === 'function') {
-    player.playVideo();
-    console.log("Música iniciada por interacción.");
-  }
-}
-
-// Esta función es llamada por la API de YouTube cuando el reproductor está listo.
-function onPlayerReady(event) {
-  event.target.setVolume(40); // Opcional: ajustar volumen
-  console.log("YouTube Player listo. Haz click para reproducir.");
-  // Ahora que el reproductor está listo, escuchamos el primer clic del usuario.
-  window.addEventListener('click', startPlayback, { once: true });
-}
-
-// Hacemos la función global para que la API de YouTube pueda encontrarla.
-window.onYouTubeIframeAPIReady = function() {
-  player = new YT.Player('player', {
-    height: '0',
-    width: '0',
-    videoId: '7as_BTOh-Lg',
-    playerVars: {
-      autoplay: 0, // La reproducción se inicia manualmente
-      loop: 1,
-      playlist: '7as_BTOh-Lg', // Requerido para que el loop funcione
-      controls: 0,
-      modestbranding: 1
-    },
-    events: { 'onReady': onPlayerReady }
-  });
-};
