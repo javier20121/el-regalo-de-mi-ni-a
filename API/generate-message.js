@@ -9,12 +9,10 @@ export default async function handler(request, response) {
         return response.status(500).json({ error: 'La clave de API no está configurada en el servidor.' });
     }
 
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-    const userQuery = "Escribe un mensaje corto, poético y muy amoroso para una persona muy especial. El tono debe ser dulce y sincero. Debe ser de no más de 30 palabras.";
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`;
 
     const payload = {
-        contents: [{ parts: [{ text: userQuery }] }],
-        tools: [{ "google_search": {} }]
+        contents: [{ parts: [{ text: USER_QUERY }] }]
     };
 
     try {
@@ -26,14 +24,25 @@ export default async function handler(request, response) {
 
         if (!fetchResponse.ok) {
             const errorBody = await fetchResponse.text();
-            console.error("Error desde la API de Google:", errorBody);
-            return response.status(fetchResponse.status).json({ error: `Error de la API de Google: ${fetchResponse.statusText}` });
+            console.error("Error desde la API de Google:", fetchResponse.status, errorBody);
+            // Intentamos interpretar el error de la API para un mensaje más útil
+            try {
+                const errorJson = JSON.parse(errorBody);
+                const message = errorJson?.error?.message || fetchResponse.statusText;
+                return response.status(fetchResponse.status).json({ error: `Error de la API de Google: ${message}` });
+            } catch (e) {
+                return response.status(fetchResponse.status).json({ error: `Error de la API de Google: ${fetchResponse.statusText}` });
+            }
         }
 
         const result = await fetchResponse.json();
-        const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || "No se pudo generar el mensaje. Intenta de nuevo.";
+        const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
 
-        // Envía solo el texto generado de vuelta a la página
+        if (!text) {
+            console.error("Respuesta inesperada de la API de Gemini:", JSON.stringify(result, null, 2));
+            return response.status(500).json({ message: "No se pudo generar el mensaje. La respuesta de la API estaba vacía." });
+        }
+
         return response.status(200).json({ message: text });
 
     } catch (error) {
