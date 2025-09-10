@@ -17,9 +17,9 @@ canvas {
 
 main {
     position: fixed;
-    top: 20%;
+    top: 15%;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translateX(-50%);
     z-index: 2;
     text-align: center;
     text-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
@@ -31,10 +31,12 @@ h1 {
     margin: 0;
 }
 
-p {
-    font-size: clamp(1rem, 3vw, 2rem);
-    margin-top: 10px;
-    font-weight: 400;
+main p {
+    font-family: 'Dancing Script', cursive;
+    font-size: clamp(1.8rem, 5vw, 4.5rem);
+    margin-top: 0;
+    font-weight: 700;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.9);
 }
 
 .ui-container {
