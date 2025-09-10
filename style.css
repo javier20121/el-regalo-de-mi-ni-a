@@ -1,6 +1,5 @@
 body {
     margin: 0;
-    overflow: hidden;
     font-family: 'Poppins', sans-serif;
     color: #fff;
 }
@@ -37,6 +36,36 @@ main p {
     margin-top: 0;
     font-weight: 700;
     text-shadow: 0 0 20px rgba(255, 255, 255, 0.9);
+}
+
+.scroll-content {
+    position: relative; /* Clave para que el contenido fluya y genere scroll */
+    z-index: 2;
+    padding-top: 45vh; /* Espacio para que no se solape con el título fijo */
+    padding-bottom: 250px; /* Espacio para que el último elemento no quede detrás del botón */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 50px;
+}
+
+.content-placeholder {
+    width: 80vw;
+    max-width: 600px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 20px 30px;
+    backdrop-filter: blur(10px);
+    text-align: center;
+}
+
+.content-placeholder p {
+    font-family: 'Poppins', sans-serif; /* Restauramos la fuente normal para los párrafos */
+    font-size: 1.1rem;
+    font-style: normal;
+    font-weight: 400;
+    text-shadow: none; /* Quitamos el brillo para mejorar la legibilidad */
+    margin-top: 10px;
 }
 
 .ui-container {
