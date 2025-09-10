@@ -2,7 +2,7 @@
 
 // Constantes para una configuración más sencilla y clara
 const MODEL_NAME = 'gemini-1.5-flash-latest';
-const USER_QUERY = "Escribe un mensaje corto, poético y muy amoroso para una persona muy especial. El tono debe ser dulce y sincero. Debe ser de no más de 30 palabras. Importante: el mensaje debe estar en español y en todo los mensajes use uno te estos para referirse a la persona(amorcito,karen,karencita cosaron,vida, preciosa, niña, ).";
+const USER_QUERY = "Escribe un mensaje corto, poético y muy amoroso para una persona muy especial. El tono debe ser dulce y sincero. Debe ser de no más de 30 palabras. Importante: el mensaje debe estar en español y en todo los mensajes use uno te estos para referirse a la persona cada mensje uno distinto y que no se repita(amorcito,karen,karencita cosaron,vida, preciosa, niña, ).";
 
 // Esta es una función serverless. Se ejecuta en el servidor, no en el navegador.
 export default async function handler(request, response) {
