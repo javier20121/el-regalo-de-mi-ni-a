@@ -1,7 +1,16 @@
 // api/generate-message.js
 
+// Constantes para una configuración más sencilla y clara
+const MODEL_NAME = 'gemini-1.5-flash-latest';
+const USER_QUERY = "Escribe un mensaje corto, poético y muy amoroso para una persona muy especial. El tono debe ser dulce y sincero. Debe ser de no más de 30 palabras.";
+
 // Esta es una función serverless. Se ejecuta en el servidor, no en el navegador.
 export default async function handler(request, response) {
+    // Solo permitir peticiones GET
+    if (request.method !== 'GET') {
+        return response.status(405).setHeader('Allow', 'GET').json({ error: 'Method Not Allowed' });
+    }
+
     // Obtiene la clave de API de las variables de entorno (almacenada de forma segura en Vercel)
     const apiKey = process.env.GEMINI_API_KEY;
 
@@ -12,7 +21,7 @@ export default async function handler(request, response) {
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`;
 
     const payload = {
-        contents: [{ parts: [{ text: USER_QUERY }] }]
+        contents: [{ parts: [{ text: USER_QUERY }] }],
     };
 
     try {

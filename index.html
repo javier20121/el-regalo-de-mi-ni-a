@@ -44,7 +44,14 @@
             console.log("API de YouTube cargada. Creando reproductor.");
             player = new YT.Player('player', {
                 height: '0', width: '0', videoId: '7as_BTOh-Lg',
-                playerVars: { autoplay: 0, loop: 1, playlist: '7as_BTOh-Lg', controls: 0, modestbranding: 1 },
+                playerVars: {
+                    autoplay: 0,
+                    loop: 1,
+                    playlist: '7as_BTOh-Lg',
+                    controls: 0,
+                    modestbranding: 1,
+                    origin: window.location.origin
+                },
                 events: { 'onReady': onPlayerReady }
             });
         }
