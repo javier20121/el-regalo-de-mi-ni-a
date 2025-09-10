@@ -15,30 +15,6 @@ canvas {
     z-index: 1;
 }
 
-main {
-    position: fixed;
-    top: 12%;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 2;
-    text-align: center;
-    text-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
-    pointer-events: none;
-}
-
-h1 {
-    font-size: clamp(2rem, 8vw, 6rem);
-    margin: 0;
-}
-
-main p {
-    font-family: 'Dancing Script', cursive;
-    font-size: clamp(1.8rem, 5vw, 4.5rem);
-    margin-top: 0;
-    font-weight: 700;
-    text-shadow: 0 0 20px rgba(255, 255, 255, 0.9);
-}
-
 .ui-container {
     position: fixed;
     bottom: 20px;
@@ -98,4 +74,16 @@ button:disabled {
 #message-container.visible {
     opacity: 1;
     transform: translateY(0);
+}
+
+/* Estilo para el cursor de escritura */
+#message-container.typing::after {
+    content: '█';
+    animation: blink 1s step-end infinite;
+    font-style: normal; /* Para que el cursor no sea itálico */
+}
+
+@keyframes blink {
+    from, to { color: transparent; }
+    50% { color: white; }
 }

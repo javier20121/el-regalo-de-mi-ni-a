@@ -5,6 +5,8 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { PMREMGenerator } from 'three';
+import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
+import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 // --- Scene, Camera, and Renderer ---
@@ -29,43 +31,27 @@ const directionalLight = new THREE.DirectionalLight(0xffffff, 0.7);
 directionalLight.position.set(10, 20, 10);
 scene.add(directionalLight);
 
-// --- Shader for dynamic background gradient ---
-const backgroundVertexShader = `
-    varying vec2 vUv;
-    void main() {
-        vUv = uv;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-`;
+// --- Starry Background ---
+const starVertices = [];
+for (let i = 0; i < 15000; i++) { // Creamos 15,000 estrellas para un efecto denso
+    const x = (Math.random() - 0.5) * 2000;
+    const y = (Math.random() - 0.5) * 2000;
+    const z = (Math.random() - 0.5) * 2000;
+    starVertices.push(x, y, z);
+}
 
-const backgroundFragmentShader = `
-    uniform vec3 topColor;
-    uniform vec3 bottomColor;
-    uniform float offset;
-    uniform float exponent;
-    varying vec2 vUv;
-    void main() {
-        float h = normalize(vUv).y * 0.5 + 0.5;
-        gl_FragColor = vec4(mix(bottomColor, topColor, max(0.0, pow(h, exponent))), 1.0);
-    }
-`;
+const starGeometry = new THREE.BufferGeometry();
+starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
 
-const backgroundUniforms = {
-    topColor: { value: new THREE.Color(0x87a8e0) },
-    bottomColor: { value: new THREE.Color(0xd9a4b3) },
-    offset: { value: 0 },
-    exponent: { value: 0.6 }
-};
-
-const backgroundMaterial = new THREE.ShaderMaterial({
-    uniforms: backgroundUniforms,
-    vertexShader: backgroundVertexShader,
-    fragmentShader: backgroundFragmentShader,
-    side: THREE.BackSide
+const starMaterial = new THREE.PointsMaterial({
+    color: 0xffffff,
+    size: 1.5,
+    sizeAttenuation: true, // Las estrellas lejanas se ven más pequeñas
+    transparent: true
 });
 
-const backgroundPlane = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000, 1, 1), backgroundMaterial);
-scene.add(backgroundPlane);
+const stars = new THREE.Points(starGeometry, starMaterial);
+scene.add(stars);
 
 // --- 3D Heart Geometry ---
 const heartShape = new THREE.Shape()
@@ -115,13 +101,68 @@ camera.position.z = 20;
 const pmremGenerator = new THREE.PMREMGenerator(renderer);
 pmremGenerator.compileEquirectangularShader();
 
-let heartInstance, sphereInstance;
+let heartInstance, sphereInstance, textMesh1, textMesh2;
 const dummy = new THREE.Object3D();
 
 new RGBELoader().load('https://rawcdn.githack.com/mrdoob/three.js/dev/examples/textures/equirectangular/royal_esplanade_1k.hdr', function(texture) {
     const envMap = pmremGenerator.fromEquirectangular(texture).texture;
     texture.dispose();
     pmremGenerator.dispose();
+
+    // --- 3D Text Material ---
+    const textMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xffffff,
+        envMap: envMap,
+        metalness: 0.0,
+        roughness: 0.1,
+        transmission: 0.8, // Efecto cristal/translúcido.
+        ior: 1.5, // Índice de refracción para el efecto cristal
+        thickness: 0.5, // Grosor para la refracción
+        emissive: new THREE.Color('#ff6699'), // Brillo sutil rosado
+        emissiveIntensity: 0.25,
+        reflectivity: 0.9
+    });
+
+    // --- 3D Text Loading ---
+    const fontLoader = new FontLoader();
+
+    // Cargar fuente para "Te amo muchisimo"
+    fontLoader.load('https://rawcdn.githack.com/mrdoob/three.js/dev/examples/fonts/optimer_bold.typeface.json', (font) => {
+        const textGeo1 = new TextGeometry('Te amo muchisimo', {
+            font: font,
+            size: 3.5,
+            height: 0.2,
+            curveSegments: 12,
+            bevelEnabled: true,
+            bevelThickness: 0.03,
+            bevelSize: 0.02,
+            bevelSegments: 5
+        });
+        textGeo1.center();
+        textMesh1 = new THREE.Mesh(textGeo1, textMaterial);
+        textMesh1.position.set(0, 2.5, 2);
+        scene.add(textMesh1);
+    });
+
+    // Cargar fuente cursiva para "Karencita"
+    // Usamos una fuente distinta pero fiable para "Karencita" para asegurar que se vea.
+    fontLoader.load('https://rawcdn.githack.com/mrdoob/three.js/dev/examples/fonts/gentilis_regular.typeface.json', (font) => {
+        const textGeo2 = new TextGeometry('Karencita', {
+            font: font,
+            size: 3.0, // Ajustamos el tamaño para la nueva fuente
+            height: 0.15,
+            curveSegments: 12,
+            // Reactivamos el biselado para un look 3D consistente
+            bevelEnabled: true,
+            bevelThickness: 0.03,
+            bevelSize: 0.02,
+            bevelSegments: 5
+        });
+        textGeo2.center();
+        textMesh2 = new THREE.Mesh(textGeo2, textMaterial);
+        textMesh2.position.set(0, -1.8, 2); // Ajustamos la posición para que esté más cerca
+        scene.add(textMesh2);
+    });
 
     const heartMaterial = new THREE.MeshPhysicalMaterial({
         metalness: 1.0,
@@ -201,21 +242,26 @@ function animate() {
 
     const time = clock.getElapsedTime();
     
-    // Dynamic background animation
-    const topColor = new THREE.Color();
-    topColor.setHSL(Math.sin(time * 0.1) * 0.5 + 0.5, 0.7, 0.6);
-    backgroundMaterial.uniforms.topColor.value = topColor;
+    // Animación del fondo estrellado para darle un movimiento sutil
+    stars.rotation.y += 0.0001;
 
-    const bottomColor = new THREE.Color();
-    bottomColor.setHSL(Math.sin(time * 0.15) * 0.5 + 0.5, 0.7, 0.6);
-    backgroundMaterial.uniforms.bottomColor.value = bottomColor;
-
-    // Parallax (reducimos la intensidad para un menor costo)
+    // Parallax
     camera.position.x += (mouse.x * 1.5 - camera.position.x) * 0.05;
     camera.position.y += (-mouse.y * 1.5 - camera.position.y) * 0.05;
     camera.lookAt(scene.position);
 
+    if (textMesh1 && textMesh2) {
+        // Animación de rotación y oscilación para el texto 3D
+
+        // Oscilación suave
+        textMesh1.position.y = 2.5 + Math.sin(time * 0.5) * 0.1;
+        textMesh2.position.y = -1.8 + Math.cos(time * 0.5) * 0.1;
+    }
+
     if (heartInstance && sphereInstance) {
+        let heartIndex = 0;
+        let sphereIndex = 0;
+
         objects.forEach((obj, i) => {
             obj.orbitAngle += obj.orbitSpeed;
             
@@ -228,15 +274,15 @@ function animate() {
             // Maintain initial rotation
             dummy.rotation.copy(obj.rotation);
             
-            // Rotation to face the center
-            dummy.lookAt(scene.position);
+            // Restore the scale on each frame (this was the missing piece)
+            dummy.scale.set(obj.scale, obj.scale, obj.scale);
             
             dummy.updateMatrix();
 
             if (obj.isHeart) {
-                heartInstance.setMatrixAt(i, dummy.matrix);
+                heartInstance.setMatrixAt(heartIndex++, dummy.matrix);
             } else {
-                sphereInstance.setMatrixAt(i - heartCount, dummy.matrix);
+                sphereInstance.setMatrixAt(sphereIndex++, dummy.matrix);
             }
         });
         heartInstance.instanceMatrix.needsUpdate = true;
@@ -256,6 +302,32 @@ window.addEventListener('resize', () => {
 });
 
 // --- LLM powered message generation ---
+
+/**
+ * Anima la aparición de texto en un elemento, letra por letra.
+ * @param {HTMLElement} element El elemento donde se mostrará el texto.
+ * @param {string} text El texto a animar.
+ * @param {number} [speed=50] La velocidad de escritura en milisegundos.
+ * @returns {Promise<void>} Una promesa que se resuelve cuando la animación termina.
+ */
+const typeWriterEffect = (element, text, speed = 50) => {
+    return new Promise((resolve) => {
+        element.textContent = '';
+        element.classList.add('visible', 'typing');
+        let i = 0;
+        function type() {
+            if (i < text.length) {
+                element.textContent += text.charAt(i++);
+                setTimeout(type, speed);
+            } else {
+                element.classList.remove('typing');
+                resolve();
+            }
+        }
+        type();
+    });
+};
+
 const generateButton = document.getElementById('generate-button');
 const messageContainer = document.getElementById('message-container');
 let isGenerating = false;
@@ -267,6 +339,7 @@ const generateMessage = async () => {
     generateButton.disabled = true;
     generateButton.textContent = 'Generando...';
     messageContainer.classList.remove('visible');
+    messageContainer.textContent = ''; // Limpiamos el contenido anterior
 
     // Llamamos a nuestra propia función de servidor, que ocultará la clave.
     const apiUrl = `/api/generate-message`;
@@ -283,13 +356,12 @@ const generateMessage = async () => {
         // La respuesta de nuestra función de servidor ahora tiene una propiedad "message"
         const text = result.message || "No se pudo generar el mensaje. Intenta de nuevo.";
 
-        messageContainer.textContent = text;
-        messageContainer.classList.add('visible');
+        await typeWriterEffect(messageContainer, text);
 
     } catch (error) {
         console.error("Error al generar el mensaje:", error);
-        messageContainer.textContent = "Lo siento, hubo un error. Por favor, inténtalo de nuevo más tarde.";
-        messageContainer.classList.add('visible');
+        const errorText = "Lo siento, hubo un error. Por favor, inténtalo de nuevo más tarde.";
+        await typeWriterEffect(messageContainer, errorText);
     } finally {
         isGenerating = false;
         generateButton.disabled = false;
