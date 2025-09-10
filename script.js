@@ -12,9 +12,8 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById("canvas"), alpha: false });
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // Optimización para pantallas de alta densidad
 renderer.setClearColor(0x000000);
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 // --- Camera Controls ---
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -28,7 +27,6 @@ scene.add(hemisphereLight);
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 0.7);
 directionalLight.position.set(10, 20, 10);
-directionalLight.castShadow = true;
 scene.add(directionalLight);
 
 // --- Shader for dynamic background gradient ---
@@ -83,9 +81,9 @@ const extrudeSettings = {
     depth: 0.1,
     bevelEnabled: true,
     bevelThickness: 0.2,
-    bevelSize: 0.2,
+    bevelSize: 0.2, // Reducimos la complejidad de la geometría para mejor rendimiento
     bevelOffset: 0,
-    bevelSegments: 20
+    bevelSegments: 8
 };
 const heartGeometry = new THREE.ExtrudeGeometry(heartShape, extrudeSettings);
 heartGeometry.center();
@@ -100,12 +98,12 @@ const sphereGeometry = new THREE.SphereGeometry(0.5, 16, 16);
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
 // Adjusted BloomPass parameters for a more subtle and less "pulsating" glow
-const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.2, 0.9, 0.85);
+const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.15, 0.9, 0.85); // Reducimos la fuerza del bloom
 composer.addPass(bloomPass);
 
 // --- Hearts and Spheres ---
 const objects = [];
-// Increased the heart count
+// Reducimos la cantidad de corazones para mejorar el rendimiento en móviles
 const heartCount = 500;
 const sphereCount = 20;
 const heartColors = ['#ff4d6d', '#ff809c', '#ff99cc', '#ff3366', '#ff6699'];
@@ -212,9 +210,9 @@ function animate() {
     bottomColor.setHSL(Math.sin(time * 0.15) * 0.5 + 0.5, 0.7, 0.6);
     backgroundMaterial.uniforms.bottomColor.value = bottomColor;
 
-    // Parallax
-    camera.position.x += (mouse.x * 2 - camera.position.x) * 0.05;
-    camera.position.y += (-mouse.y * 2 - camera.position.y) * 0.05;
+    // Parallax (reducimos la intensidad para un menor costo)
+    camera.position.x += (mouse.x * 1.5 - camera.position.x) * 0.05;
+    camera.position.y += (-mouse.y * 1.5 - camera.position.y) * 0.05;
     camera.lookAt(scene.position);
 
     if (heartInstance && sphereInstance) {

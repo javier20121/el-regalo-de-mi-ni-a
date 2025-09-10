@@ -84,13 +84,12 @@ button:disabled {
     width: 80vw;
     max-width: 600px;
     min-height: 100px;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.15); /* Usamos un fondo sólido translúcido en lugar de blur */
     border-radius: 15px;
     padding: 20px;
     text-align: center;
     font-style: italic;
     font-size: 1rem;
-    backdrop-filter: blur(10px);
     opacity: 0;
     transform: translateY(20px);
     transition: opacity 0.5s ease, transform 0.5s ease;
